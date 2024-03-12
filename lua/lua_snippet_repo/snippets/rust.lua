@@ -16,9 +16,9 @@ local m = require("luasnip.extras").match
 local n = require("luasnip.extras").nonempty
 local dl = require("luasnip.extras").dynamic_lambda
 local fmta = require("luasnip.extras.fmt").fmta
-local types = require("luasnip.util.types")
 local conds = require("luasnip.extras.conditions")
 local conds_expand = require("luasnip.extras.conditions.expand")
+local types = require("luasnip.util.types")
 
 local get_anyhow_presence = function(position)
   return d(position, function()
