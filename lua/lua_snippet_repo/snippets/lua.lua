@@ -49,7 +49,7 @@ end
   ]],
       {
         text = i(1, "target_string"),
-        i(2,""),
+        i(0,""),
       }
     )
   ),
