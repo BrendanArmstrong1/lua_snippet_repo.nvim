@@ -1,7 +1,7 @@
 local ls = require("luasnip")
 local s = ls.snippet
 local f = ls.function_node
-local with_priority = require("snippets.tex.util.utils").with_priority
+local with_priority = require("lua_snippet_repo.snippets.tex.utils").with_priority
 
 local math_iA = {
   s(

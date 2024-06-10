@@ -1,7 +1,7 @@
 local ls = require("luasnip")
 local conds = require("luasnip.extras.expand_conditions")
 
-local utils = require("snippets.tex.utils")
+local utils = require("lua_snippet_repo.snippets.tex.utils")
 local pipe = utils.pipe
 local no_backslash = utils.no_backslash
 
