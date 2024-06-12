@@ -1,24 +1,4 @@
-local ls = require("luasnip")
-local re = require("luasnip.extras").rep
-local fmt = require("luasnip.extras.fmt").fmt
-local i = ls.insert_node
-local s = ls.snippet
-local t = ls.text_node
-local sn = ls.snippet_node
-local f = ls.function_node
-local c = ls.choice_node
-local d = ls.dynamic_node
-local r = ls.restore_node
-local l = require("luasnip.extras").lambda
-local rep = require("luasnip.extras").rep
-local p = require("luasnip.extras").partial
-local m = require("luasnip.extras").match
-local n = require("luasnip.extras").nonempty
-local dl = require("luasnip.extras").dynamic_lambda
-local fmta = require("luasnip.extras.fmt").fmta
-local conds = require("luasnip.extras.conditions")
-local conds_expand = require("luasnip.extras.conditions.expand")
-local types = require("luasnip.util.types")
+local stype = require("lua_snippet_repo.snippets.snippet_types")
 
 local function difference(a, b)
   local aa = {}
@@ -40,12 +20,12 @@ local function difference(a, b)
 end
 
 local function generic_pdoc(ilevel, args)
-  local nodes = { t({ "'''", string.rep("\t", ilevel) }) }
-  nodes[#nodes + 1] = i(1, "Small Description.")
-  nodes[#nodes + 1] = t({ "", "", string.rep("\t", ilevel) })
-  nodes[#nodes + 1] = i(2, "Long Description")
-  nodes[#nodes + 1] = t({ "", "", string.rep("\t", ilevel) .. "Parameters" })
-  nodes[#nodes + 1] = t({ "", string.rep("\t", ilevel) .. "----------" })
+  local nodes = { stype.t({ "'''", string.rep("\t", ilevel) }) }
+  nodes[#nodes + 1] = stype.i(1, "Small Description.")
+  nodes[#nodes + 1] = stype.t({ "", "", string.rep("\t", ilevel) })
+  nodes[#nodes + 1] = stype.i(2, "Long Description")
+  nodes[#nodes + 1] = stype.t({ "", "", string.rep("\t", ilevel) .. "Parameters" })
+  nodes[#nodes + 1] = stype.t({ "", string.rep("\t", ilevel) .. "----------" })
 
   local a = vim.tbl_map(function(item)
     local trimed = vim.trim(item)
@@ -59,15 +39,15 @@ local function generic_pdoc(ilevel, args)
   for idx, v in pairs(a) do
     local type_hint_check = vim.split(v, ":")
     if #type_hint_check > 1 then
-      nodes[#nodes + 1] = t({
+      nodes[#nodes + 1] = stype.t({
         "",
         string.rep("\t", ilevel + 1) .. vim.trim(type_hint_check[1]) .. " : " .. vim.trim(type_hint_check[2]),
         string.rep("\t", ilevel + 2),
       })
     else
-      nodes[#nodes + 1] = t({ "", string.rep("\t", ilevel + 1) .. v .. " : ", string.rep("\t", ilevel + 2) })
+      nodes[#nodes + 1] = stype.t({ "", string.rep("\t", ilevel + 1) .. v .. " : ", string.rep("\t", ilevel + 2) })
     end
-    nodes[#nodes + 1] = i(idx + 2, "Description For " .. v)
+    nodes[#nodes + 1] = stype.i(idx + 2, "Description For " .. v)
   end
 
   return nodes, #a
@@ -75,20 +55,20 @@ end
 
 local function pyfdoc(args, _, ostate)
   local nodes, a = generic_pdoc(1, args)
-  nodes[#nodes + 1] = t({ "", "\t'''" })
-  nodes[#nodes + 1] = t({ "", "\t", "", "\t" })
-  nodes[#nodes + 1] = i(a + 2 + 1, "pass")
-  local snip = sn(nil, nodes)
+  nodes[#nodes + 1] = stype.t({ "", "\t'''" })
+  nodes[#nodes + 1] = stype.t({ "", "\t", "", "\t" })
+  nodes[#nodes + 1] = stype.i(a + 2 + 1, "pass")
+  local snip = stype.sn(nil, nodes)
   snip.old_state = ostate or {}
   return snip
 end
 
 local function pycdoc(args, _, ostate)
   local nodes, a = generic_pdoc(2, args)
-  nodes[#nodes + 1] = t({ "", "\t\t'''" })
-  nodes[#nodes + 1] = t({ "", "\t\t", "\t\t" })
-  nodes[#nodes + 1] = i(a + 2 + 1, "pass")
-  local snip = sn(nil, nodes)
+  nodes[#nodes + 1] = stype.t({ "", "\t\t'''" })
+  nodes[#nodes + 1] = stype.t({ "", "\t\t", "\t\t" })
+  nodes[#nodes + 1] = stype.i(a + 2 + 1, "pass")
+  local snip = stype.sn(nil, nodes)
   snip.old_state = ostate or {}
   print(snip.old_state[1])
   return snip
@@ -98,27 +78,27 @@ local function lims_process(_, snip)
   local env = snip.env
   print(vim.inspect(env))
   if type(next(env.TM_SELECTED_TEXT)) == "nil" then
-    return sn(nil, { i(1, "value") })
+    return stype.sn(nil, { stype.i(1, "value") })
   end
-  return sn(nil, { i(1, env.TM_SELECTED_TEXT[1]) })
+  return stype.sn(nil, { stype.i(1, env.TM_SELECTED_TEXT[1]) })
 end
 
 return {
-  s(
+  stype.s(
     "lims",
-    fmta([[{"value": <value>, "max": <max>, "min": <min>}]], {
-      value = d(1, lims_process, {}, { user_args = {} }),
-      max = i(2, "max"),
-      min = i(3, "min"),
+    stype.fmta([[{"value": <value>, "max": <max>, "min": <min>}]], {
+      value = stype.d(1, lims_process, {}, { user_args = {} }),
+      max = stype.i(2, "max"),
+      min = stype.i(3, "min"),
     })
   ),
-  s(
+  stype.s(
     {
       trig = "cls",
       dscr = "Documented class structure",
       name = "class",
     },
-    fmt(
+    stype.fmt(
       [[
     class {}({}):
         def init(self,{}):
@@ -126,20 +106,20 @@ return {
 
     ]],
       {
-        i(1, "CLASS"),
-        i(2, ""),
-        i(3),
-        c(4, { d(nil, pycdoc, { 3 }), i(1, "pass") }),
+        stype.i(1, "CLASS"),
+        stype.i(2, ""),
+        stype.i(3),
+        stype.c(4, { stype.d(nil, pycdoc, { 3 }), stype.i(1, "pass") }),
       }
     )
   ),
   -- try/except/else/finally
-  s(
+  stype.s(
     {
       trig = "try",
       dscr = "Try except block",
     },
-    fmt(
+    stype.fmt(
       [[
     try:
         {}
@@ -148,21 +128,21 @@ return {
     {}
     ]],
       {
-        i(1, "statement"),
-        i(2, "Exception"),
-        c(3, { t(""), sn(nil, { t(" as "), i(1, "e") }) }),
-        i(4, "..."),
-        c(5, {
-          t(""),
-          sn(nil, { t("finally:"), t({ "", "\t" }), i(1, "...") }),
-          sn(nil, { t("else:"), t({ "", "\t" }), i(1, "...") }),
-          sn(nil, {
-            t("else:"),
-            t({ "", "\t" }),
-            i(1, "..."),
-            t({ "", "finally:" }),
-            t({ "", "\t" }),
-            i(2, "..."),
+        stype.i(1, "statement"),
+        stype.i(2, "Exception"),
+        stype.c(3, { stype.t(""), stype.sn(nil, { stype.t(" as "), stype.i(1, "e") }) }),
+        stype.i(4, "..."),
+        stype.c(5, {
+          stype.t(""),
+          stype.sn(nil, { stype.t("finally:"), stype.t({ "", "\t" }), stype.i(1, "...") }),
+          stype.sn(nil, { stype.t("else:"), stype.t({ "", "\t" }), stype.i(1, "...") }),
+          stype.sn(nil, {
+            stype.t("else:"),
+            stype.t({ "", "\t" }),
+            stype.i(1, "..."),
+            stype.t({ "", "finally:" }),
+            stype.t({ "", "\t" }),
+            stype.i(2, "..."),
           }),
         }),
       }
@@ -170,9 +150,9 @@ return {
   ),
 
   -- main fn setup with async choice
-  s(
+  stype.s(
     { trig = "main", dscr = "def name if name main" },
-    fmt(
+    stype.fmt(
       [[
         {}def main():
             {}
@@ -181,9 +161,9 @@ return {
             {}
         ]],
       {
-        c(1, { t(""), t("async ") }),
-        i(0, "pass"),
-        f(function(args)
+        stype.c(1, { stype.t(""), stype.t("async ") }),
+        stype.i(0, "pass"),
+        stype.f(function(args)
           print(args)
           if args[1][1] == "async " then
             return "asyncio.run(main())"
@@ -196,99 +176,99 @@ return {
   ),
 
   -- define function
-  s(
+  stype.s(
     {
       trig = "def",
       dscr = "Function define",
       name = "function",
     },
-    fmt(
+    stype.fmt(
       [[
     {async}def {name}({args}):
         {docs}
 
     ]],
       {
-        async = c(1, { t(""), t("async ") }),
-        name = i(2, "fn"),
-        args = i(3, ""),
-        docs = c(4, { i(1, "pass"), d(nil, pyfdoc, { 3 }) }),
+        async = stype.c(1, { stype.t(""), stype.t("async ") }),
+        name = stype.i(2, "fn"),
+        args = stype.i(3, ""),
+        docs = stype.c(4, { stype.i(1, "pass"), stype.d(nil, pyfdoc, { 3 }) }),
       }
     )
   ),
 
   -- with/for
-  s(
+  stype.s(
     {
       trig = "with",
       dscr = "with async or not",
       name = "with",
     },
-    fmt(
+    stype.fmt(
       [[
     {async}with {name} as {var}:
         {body}
 
     ]],
       {
-        async = c(1, { t(""), t("async ") }),
-        name = i(2, "enter"),
-        var = i(3, "var"),
-        body = i(4, "..."),
+        async = stype.c(1, { stype.t(""), stype.t("async ") }),
+        name = stype.i(2, "enter"),
+        var = stype.i(3, "var"),
+        body = stype.i(4, "..."),
       }
     )
   ),
-  s(
+  stype.s(
     {
       trig = "for",
       dscr = "for async or not",
       name = "for",
     },
-    fmt(
+    stype.fmt(
       [[
     {async}for {var} in {iterable}:
         {body}
 
     ]],
       {
-        async = c(1, { t(""), t("async ") }),
-        var = i(2, "var"),
-        iterable = i(3, "iterable"),
-        body = i(4, "..."),
+        async = stype.c(1, { stype.t(""), stype.t("async ") }),
+        var = stype.i(2, "var"),
+        iterable = stype.i(3, "iterable"),
+        body = stype.i(4, "..."),
       }
     )
   ),
 
   -- logging
-  s(
+  stype.s(
     {
       trig = "logsetup",
       dscr = "setup the logger",
       name = "logger_setup",
     },
-    fmt(
+    stype.fmt(
       [[
       {root} = logging.getLogger()
       {}.setLevel(logging.DEBUG)
 
       handler = logging.StreamHandler(sys.stdout)
       handler.setLevel(logging.DEBUG)
-      formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+      formatter = logging.Formatter('%(asctime)stype.s - %(name)stype.s - %(levelname)stype.s - %(message)stype.s')
       handler.setFormatter(formatter)
       {}.addHandler(handler)
       ]],
       {
-        root = i(1, "root"),
-        re(1),
-        re(1),
+        root = stype.i(1, "root"),
+        stype.re(1),
+        stype.re(1),
       }
     )
   ),
   -- debugging
-  s({
+  stype.s({
     trig = "pdb",
     dscr = "debugger",
     name = "py-debugger",
     snippetType = "autosnippet",
-  }, t("__import__('pdb').set_trace()")),
+  }, stype.t("__import__('pdb').set_trace()")),
 }
