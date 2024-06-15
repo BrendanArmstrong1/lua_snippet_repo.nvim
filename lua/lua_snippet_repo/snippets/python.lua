@@ -109,7 +109,7 @@ return {
         stype.i(1, "CLASS"),
         stype.i(2, ""),
         stype.i(3),
-        stype.c(4, { stype.d(nil, pycdoc, { 3 }), stype.i(1, "pass") }),
+        c(4, { stype.d(nil, pycdoc, { 3 }), stype.i(1, "pass") }),
       }
     )
   ),
@@ -130,9 +130,9 @@ return {
       {
         stype.i(1, "statement"),
         stype.i(2, "Exception"),
-        stype.c(3, { stype.t(""), stype.sn(nil, { stype.t(" as "), stype.i(1, "e") }) }),
+        c(3, { stype.t(""), stype.sn(nil, { stype.t(" as "), stype.i(1, "e") }) }),
         stype.i(4, "..."),
-        stype.c(5, {
+        c(5, {
           stype.t(""),
           stype.sn(nil, { stype.t("finally:"), stype.t({ "", "\t" }), stype.i(1, "...") }),
           stype.sn(nil, { stype.t("else:"), stype.t({ "", "\t" }), stype.i(1, "...") }),
@@ -161,7 +161,7 @@ return {
             {}
         ]],
       {
-        stype.c(1, { stype.t(""), stype.t("async ") }),
+        c(1, { stype.t(""), stype.t("async ") }),
         stype.i(0, "pass"),
         stype.f(function(args)
           print(args)
@@ -189,10 +189,10 @@ return {
 
     ]],
       {
-        async = stype.c(1, { stype.t(""), stype.t("async ") }),
+        async = c(1, { stype.t(""), stype.t("async ") }),
         name = stype.i(2, "fn"),
         args = stype.i(3, ""),
-        docs = stype.c(4, { stype.i(1, "pass"), stype.d(nil, pyfdoc, { 3 }) }),
+        docs = c(4, { stype.i(1, "pass"), stype.d(nil, pyfdoc, { 3 }) }),
       }
     )
   ),
@@ -211,7 +211,7 @@ return {
 
     ]],
       {
-        async = stype.c(1, { stype.t(""), stype.t("async ") }),
+        async = c(1, { stype.t(""), stype.t("async ") }),
         name = stype.i(2, "enter"),
         var = stype.i(3, "var"),
         body = stype.i(4, "..."),
@@ -231,7 +231,7 @@ return {
 
     ]],
       {
-        async = stype.c(1, { stype.t(""), stype.t("async ") }),
+        async = c(1, { stype.t(""), stype.t("async ") }),
         var = stype.i(2, "var"),
         iterable = stype.i(3, "iterable"),
         body = stype.i(4, "..."),

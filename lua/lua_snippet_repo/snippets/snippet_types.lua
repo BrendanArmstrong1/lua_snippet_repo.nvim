@@ -11,6 +11,7 @@ M.f = M.ls.function_node
 M.c = M.ls.choice_node
 M.d = M.ls.dynamic_node
 M.r = M.ls.restore_node
+M.postfix = require("luasnip.extras.postfix").postfix
 M.l = require("luasnip.extras").lambda
 M.rep = require("luasnip.extras").rep
 M.p = require("luasnip.extras").partial
