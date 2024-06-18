@@ -13,9 +13,11 @@ local oct2bin = {
   ["6"] = "110",
   ["7"] = "111",
 }
+
 local function get_oct_2_bin(a)
   return oct2bin[a]
 end
+
 local function to_bits(num)
   local s = string.format("%o", num)
   s = string.gsub(s, ".", get_oct_2_bin)
@@ -23,12 +25,82 @@ local function to_bits(num)
   return s
 end
 
+-- --for posterity
+-- local function lshift(x, by)
+--   return x * 2 ^ by
+-- end
+--
+-- local function rshift(x, by)
+--   return math.floor(x / 2 ^ by)
+-- end
+
+local function bitwise_and(a, b) --Bitwise and
+  local p, c = 1, 0
+  while a > 0 and b > 0 do
+    local ra, rb = a % 2, b % 2
+    if ra + rb > 1 then
+      c = c + p
+    end
+    a, b, p = (a - ra) / 2, (b - rb) / 2, p * 2
+  end
+  return c
+end
+
+-- shamelessly adapted from user: georg
+-- https://stackoverflow.com/questions/12532871/how-to-convert-a-very-large-hex-number-to-decimal-in-javascript
+local function hex_to_decimal(num)
+  local function add(x, y)
+    local c = 0
+    local r = {}
+    local xtable = {}
+    local ytable = {}
+    for i = 1, #x do
+      table.insert(xtable, tonumber(string.sub(x, i, i)))
+    end
+    for i = 1, #y do
+      table.insert(ytable, tonumber(string.sub(y, i, i)))
+    end
+    while #xtable > 0 or #ytable > 0 do
+      local s = (table.remove(xtable) or 0) + (table.remove(ytable) or 0) + c
+      if s < 10 then
+        table.insert(r, s)
+        c = 0
+      else
+        table.insert(r, s - 10)
+        c = 1
+      end
+    end
+    if c == 1 then
+      table.insert(r, c)
+    end
+    return string.reverse(table.concat(r))
+  end
+
+  local num_table = {}
+  for i = 1, #num do
+    table.insert(num_table, string.sub(num, i, i))
+  end
+  local dec = "0"
+  for _, chr in pairs(num_table) do
+    local n = tonumber(chr, 16)
+    local t = 8
+    while t ~= 0 do
+      dec = add(dec, dec)
+      if bitwise_and(n, t) > 0 then
+        dec = add(dec, "1")
+      end
+      t = math.floor(t / 2 ^ 1)
+    end
+  end
+  return dec
+end
+
 local function decimal_from(arg, type)
   local answer
   if type == "b" then
     answer = tonumber(string.gsub(arg, " ", ""), 2)
   elseif type == "h" then
-    answer = tonumber(arg, 16)
+    answer = hex_to_decimal(arg)
   elseif type == "c" then
     answer = tonumber(arg, 8)
   end
@@ -135,7 +207,6 @@ string_from = function(arg, type)
     return string_from(bin_to(arg, "h"), "h")
   end
 end
-
 
 local M = {
   stype.postfix(
