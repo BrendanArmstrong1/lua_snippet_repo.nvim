@@ -1,7 +1,7 @@
 local stype = require("lua_snippet_repo.snippets.snippet_types")
 
 -- function definition for later
-local string_from
+local M = {}
 
 local oct2bin = {
   ["0"] = "000",
@@ -14,102 +14,139 @@ local oct2bin = {
   ["7"] = "111",
 }
 
-local function get_oct_2_bin(a)
-  return oct2bin[a]
+local bin2hex = {
+  ["0000"] = "0",
+  ["0001"] = "1",
+  ["0010"] = "2",
+  ["0011"] = "3",
+  ["0100"] = "4",
+  ["0101"] = "5",
+  ["0110"] = "6",
+  ["0111"] = "7",
+  ["1000"] = "8",
+  ["1001"] = "9",
+  ["1010"] = "a",
+  ["1011"] = "b",
+  ["1100"] = "c",
+  ["1101"] = "d",
+  ["1110"] = "e",
+  ["1111"] = "f",
+}
+
+M.oct_to_bin = function(oct_string)
+  local function get_oct2bin(a)
+    return oct2bin[a]
+  end
+  if string.lower(string.sub(oct_string, 1, 2)) == "0o" then
+    oct_string = string.sub(oct_string, 2)
+  end
+  return string.gsub(oct_string, ".", get_oct2bin)
 end
 
-local function to_bits(num)
-  local s = string.format("%o", num)
-  s = string.gsub(s, ".", get_oct_2_bin)
-  print(s)
-  return s
+M.bits_to_hex = function(bits)
+  local function get_bits2hex(a)
+    return bin2hex[a]
+  end
+  if string.lower(string.sub(bits, 1, 2)) == "0b" then
+    bits = string.sub(bits, 2)
+  end
+  local bits_string = string.gsub(bits, " ", "")
+  return string.gsub(bits_string, "....", get_bits2hex)
 end
 
--- --for posterity
--- local function lshift(x, by)
---   return x * 2 ^ by
--- end
---
--- local function rshift(x, by)
---   return math.floor(x / 2 ^ by)
--- end
-
-local function bitwise_and(a, b) --Bitwise and
-  local p, c = 1, 0
-  while a > 0 and b > 0 do
-    local ra, rb = a % 2, b % 2
-    if ra + rb > 1 then
-      c = c + p
-    end
-    a, b, p = (a - ra) / 2, (b - rb) / 2, p * 2
+M.add = function(x, y, base)
+  local z = {}
+  local n = math.max(#x, #y)
+  local c = 0
+  local i = 0
+  while i < n or c > 0 do
+    local xi = x[i + 1] or 0
+    local yi = y[i + 1] or 0
+    local zi = c + xi + yi
+    table.insert(z, zi % base)
+    c = math.floor(zi / base)
+    i = i + 1
   end
-  return c
+  return z
 end
 
--- shamelessly adapted from user: georg
--- https://stackoverflow.com/questions/12532871/how-to-convert-a-very-large-hex-number-to-decimal-in-javascript
-local function hex_to_decimal(num)
-  local function add(x, y)
-    local c = 0
-    local r = {}
-    local xtable = {}
-    local ytable = {}
-    for i = 1, #x do
-      table.insert(xtable, tonumber(string.sub(x, i, i)))
-    end
-    for i = 1, #y do
-      table.insert(ytable, tonumber(string.sub(y, i, i)))
-    end
-    while #xtable > 0 or #ytable > 0 do
-      local s = (table.remove(xtable) or 0) + (table.remove(ytable) or 0) + c
-      if s < 10 then
-        table.insert(r, s)
-        c = 0
-      else
-        table.insert(r, s - 10)
-        c = 1
-      end
-    end
-    if c == 1 then
-      table.insert(r, c)
-    end
-    return string.reverse(table.concat(r))
+M.multiply_by_number = function(num, x, base)
+  local result = {}
+  local power = x
+  if num == 0 then
+    return result
   end
 
-  local num_table = {}
-  for i = 1, #num do
-    table.insert(num_table, string.sub(num, i, i))
-  end
-  local dec = "0"
-  for _, chr in pairs(num_table) do
-    local n = tonumber(chr, 16)
-    local t = 8
-    while t ~= 0 do
-      dec = add(dec, dec)
-      if bitwise_and(n, t) > 0 then
-        dec = add(dec, "1")
-      end
-      t = math.floor(t / 2 ^ 1)
+  while true do
+    if num % 2 > 0 then
+      result = M.add(result, power, base)
     end
+    num = math.floor(num / 2)
+    if num == 0 then
+      break
+    end
+    power = M.add(power, power, base)
   end
-  return dec
+  return result
 end
 
-local function decimal_from(arg, type)
+M.parse_to_digits_array = function(str, base)
+  local digits = {}
+  for i = #str, 1, -1 do
+    local n = tonumber(string.sub(str, i, i), base)
+    table.insert(digits, n)
+  end
+  return digits
+end
+
+M.convert_base = function(str, from_base, to_base)
+  local digits = M.parse_to_digits_array(str, from_base)
+  local out_array = {}
+  local power = { 1 }
+  for i = 1, #digits do
+    if digits[i] > 0 then
+      out_array = M.add(out_array, M.multiply_by_number(digits[i], power, to_base), to_base)
+    end
+    power = M.multiply_by_number(from_base, power, to_base)
+  end
+
+  local formatter
+  if to_base == 10 then
+    formatter = "%d"
+  elseif to_base == 16 then
+    formatter = "%x"
+  elseif to_base == 8 then
+    formatter = "%o"
+  end
+
+  local out = {}
+  for i = #out_array, 1, -1 do
+    local s = string.format(formatter, out_array[i])
+    table.insert(out, s)
+  end
+  return table.concat(out)
+end
+
+M.decimal_from = function(arg, type)
   local answer
   if type == "b" then
-    answer = tonumber(string.gsub(arg, " ", ""), 2)
+    local hex_string = M.bits_to_hex(arg)
+    answer = M.convert_base(hex_string, 16, 10)
   elseif type == "h" then
-    answer = hex_to_decimal(arg)
+    if string.sub(arg, 1, 2) == "0x" then
+      arg = string.sub(arg, 2)
+    end
+    answer = M.convert_base(arg, 16, 10)
   elseif type == "c" then
-    answer = tonumber(arg, 8)
+    answer = M.convert_base(arg, 8, 10)
   end
-  return tostring(answer)
+  return answer
 end
 
-local function decimal_to(arg, type)
+M.decimal_to = function(arg, type)
   if type == "b" then
-    local bits = string.gsub(to_bits(arg), "^0+", "")
+    local bits = M.oct_to_bin(M.decimal_to(arg, "c"))
+    bits = string.gsub(bits, "^0", "")
     local chunk_size = 4
     local remaining = chunk_size - math.fmod(#bits, chunk_size)
     if remaining == 4 then
@@ -123,73 +160,23 @@ local function decimal_to(arg, type)
     end
     return table.concat(s, " ")
   elseif type == "h" then
-    local hex_string = string.format("%x", arg)
+    local hex_string = M.convert_base(arg, 10, 16)
     if math.fmod(#hex_string, 2) == 1 then
       return "0" .. hex_string
     end
     return hex_string
   elseif type == "c" then
-    return string.format("%o", arg)
+    return M.convert_base(arg, 10, 8)
   end
 end
 
-local function hex_to(arg, type)
-  if type == "c" then
-    return decimal_to(decimal_from(arg, "h"), "c")
-  elseif type == "b" then
-    return decimal_to(decimal_from(arg, "h"), "b")
-  elseif type == "w" then
-    return string_from(arg, "h")
-  elseif type == "d" then
-    return decimal_from(arg, "h")
-  end
-end
-local function oct_to(arg, type)
-  if type == "h" then
-    return decimal_to(decimal_from(arg, "c"), "h")
-  elseif type == "b" then
-    return decimal_to(decimal_from(arg, "c"), "b")
-  elseif type == "w" then
-    return string_from(arg, "c")
-  elseif type == "d" then
-    return decimal_from(arg, "c")
-  end
-end
-local function bin_to(arg, type)
-  if type == "c" then
-    return decimal_to(decimal_from(arg, "b"), "c")
-  elseif type == "h" then
-    return decimal_to(decimal_from(arg, "b"), "h")
-  elseif type == "w" then
-    return string_from(arg, "b")
-  elseif type == "d" then
-    return decimal_from(arg, "b")
-  end
-end
-
-local function string_to(arg, type)
-  if type == "h" then
-    local s = {}
-    local char
-    for i = 1, #arg do
-      char = string.sub(arg, i, i)
-      table.insert(s, string.format("%02x", string.byte(char)))
-    end
-    return table.concat(s, "")
-  elseif type == "c" then
-    return hex_to(string_to(arg, "h"), "c")
-  elseif type == "b" then
-    return hex_to(string_to(arg, "h"), "b")
-  end
-end
-
-string_from = function(arg, type)
+M.string_from = function(arg, type)
   if type == "h" then
     local hex_string
     local chunk_size = 2
     local s = {}
 
-    -- make sure string hase even number of digits
+    -- make sure hex hase even number of digits
     if math.fmod(#arg, 2) == 1 then
       hex_string = "0" .. arg
     else
@@ -202,13 +189,67 @@ string_from = function(arg, type)
 
     return table.concat(s, "")
   elseif type == "c" then
-    return string_from(oct_to(arg, "h"), "h")
+    return M.string_from(M.oct_to(arg, "h"), "h")
   elseif type == "b" then
-    return string_from(bin_to(arg, "h"), "h")
+    return M.string_from(M.bin_to(arg, "h"), "h")
   end
 end
 
-local M = {
+M.hex_to = function (arg, type)
+  local decimal_form = M.decimal_from(arg, "h")
+  if type == "c" then
+    return M.decimal_to(decimal_form, "c")
+  elseif type == "b" then
+    return M.decimal_to(decimal_form, "b")
+  elseif type == "w" then
+    return M.string_from(arg, "h")
+  end
+  return decimal_form
+end
+
+M.oct_to = function(arg, type)
+  local decimal_form = M.decimal_from(arg, "c")
+  if type == "h" then
+    return M.convert_base(arg, 8, 16)
+  elseif type == "b" then
+    return M.decimal_to(decimal_form, "b")
+  elseif type == "w" then
+    return M.string_from(arg, "c")
+  end
+  return decimal_form
+end
+
+M.bin_to = function(arg, type)
+  if type == "c" then
+    return M.decimal_to(M.decimal_from(arg, "b"), "c")
+  elseif type == "h" then
+    return M.bits_to_hex(arg)
+  elseif type == "w" then
+    return M.string_from(arg, "b")
+  elseif type == "d" then
+    local hex_string = M.bits_to_hex(arg)
+    return M.convert_base(hex_string, 16, 10)
+  end
+end
+
+M.string_to = function(arg, type)
+  if type == "h" then
+    local s = {}
+    local char
+    for i = 1, #arg do
+      char = string.sub(arg, i, i)
+      table.insert(s, string.format("%02x", string.byte(char)))
+    end
+    return table.concat(s, "")
+  elseif type == "c" then
+    return M.hex_to(M.string_to(arg, "h"), "c")
+  elseif type == "b" then
+    return M.hex_to(M.string_to(arg, "h"), "b")
+  end
+end
+
+
+local M1 = {
   stype.postfix(
     {
       name = "decimal to",
@@ -219,7 +260,7 @@ local M = {
       match_pattern = "[0-9]+$",
     },
     stype.d(1, function(_, snip)
-      return stype.sn(nil, { stype.t(decimal_to(snip.snippet.env.POSTFIX_MATCH, snip.snippet.captures[1]), "") })
+      return stype.sn(nil, { stype.t(M.decimal_to(snip.snippet.env.POSTFIX_MATCH, snip.snippet.captures[1]), "") })
     end)
   ),
   stype.postfix(
@@ -232,7 +273,7 @@ local M = {
       match_pattern = "0?b?[01][01%s?]+[01]$",
     },
     stype.d(1, function(_, snip)
-      return stype.sn(nil, { stype.t(bin_to(snip.snippet.env.POSTFIX_MATCH, snip.snippet.captures[1]), "") })
+      return stype.sn(nil, { stype.t(M.bin_to(snip.snippet.env.POSTFIX_MATCH, snip.snippet.captures[1]), "") })
     end)
   ),
   stype.postfix(
@@ -245,7 +286,7 @@ local M = {
       match_pattern = "0?o?[0-7]+$",
     },
     stype.d(1, function(_, snip)
-      return stype.sn(nil, { stype.t(oct_to(snip.snippet.env.POSTFIX_MATCH, snip.snippet.captures[1]), "") })
+      return stype.sn(nil, { stype.t(M.oct_to(snip.snippet.env.POSTFIX_MATCH, snip.snippet.captures[1]), "") })
     end)
   ),
   stype.postfix(
@@ -258,7 +299,7 @@ local M = {
       match_pattern = "0?x?[a-fA-F0-9]+$",
     },
     stype.d(1, function(_, snip)
-      return stype.sn(nil, { stype.t(hex_to(snip.snippet.env.POSTFIX_MATCH, snip.snippet.captures[1]), "") })
+      return stype.sn(nil, { stype.t(M.hex_to(snip.snippet.env.POSTFIX_MATCH, snip.snippet.captures[1]), "") })
     end)
   ),
   stype.postfix(
@@ -271,9 +312,9 @@ local M = {
       match_pattern = [[[%w%"%'`%-%.%_]+$]],
     },
     stype.d(1, function(_, snip)
-      return stype.sn(nil, { stype.t(string_to(snip.snippet.env.POSTFIX_MATCH, snip.snippet.captures[1]), "") })
+      return stype.sn(nil, { stype.t(M.string_to(snip.snippet.env.POSTFIX_MATCH, snip.snippet.captures[1]), "") })
     end)
   ),
 }
 
-return M
+return M1
